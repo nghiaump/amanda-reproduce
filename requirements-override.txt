@@ -1,0 +1,4 @@
+# Ghi đè yêu cầu phụ thuộc khi cài bằng uv (uv pip install --override requirements-override.txt).
+# LLaVA-Med khai báo pydantic<2, còn wandb 0.30.0 cần pydantic 2. Harness chỉ nạp mô hình của LLaVA-Med,
+# không dùng phần web demo (gradio/fastapi) dựa trên pydantic, nên dùng pydantic 2 cho cả môi trường.
+pydantic==2.13.5

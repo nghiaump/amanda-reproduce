@@ -1,0 +1,23 @@
+# môi trường và tải về (do các bước 01–04 tạo)
+.venv/
+.venv-vllm/
+third_party/
+models/
+data/slake/
+
+# đầu ra khi chạy
+runs/
+logs/
+state/
+results/
+wandb/
+
+# cấu hình riêng của từng máy (có thể chứa địa chỉ server)
+config.local.env
+.env
+
+# tư liệu riêng, không công bố
+_private/
+
+__pycache__/
+*.pyc

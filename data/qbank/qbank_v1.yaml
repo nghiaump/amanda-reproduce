@@ -1,0 +1,1003 @@
+# Question bank v1 — đồ thị câu hỏi đọc phim, trích từ tài liệu tiếng Việt (kho tri thức bsnt), dịch sang tiếng Anh.
+#
+# Thay cho 3 tầng câu hỏi tự do của Explorer (AMANDA §3.3, Table 12). GIỮ khung 3 tầng của bài báo:
+#   tier 1 = General observation · tier 2 = Anatomical analysis · tier 3 = Detailed findings
+# Cấu trúc đồ thị: route (phương thức × vùng) → root → structure (tầng 2) → finding (tầng 3). Cạnh `refines` = `parent`.
+# Câu hỏi tầng 1 gắn vào root; tầng 2 gắn vào structure; tầng 3 gắn vào finding hoặc descriptor.
+#
+# Nguồn: `source:doc_id#ord` = bảng source/document/chunk của Postgres bsnt (repo ~/ai/bsnt-study), đọc read-only
+# bằng scripts/qbank_extract.py. Người dùng xác nhận quyền dùng cho seminar học thuật (24/09).
+# ⛔ Dựng CHỈ từ tài liệu, không nhìn câu hỏi test của SLAKE. ⛔ Mọi mục cần thông tin NGOÀI một ảnh đơn bị loại
+#    (xem `excluded` cuối file và docs/repro/qbank_sources.md).
+# `derived: true` = không có hướng dẫn đọc phim riêng cho route đó; câu hỏi được SUY RA từ nguồn gần nhất.
+
+version: qbank_v1
+
+sources:
+  "bsnt:2755":      {title: "Checklist kiểm tra đọc X quang ngực", author: "TS.BS Lê Thượng Vũ", org: "ĐHYD TP.HCM, Nội khoa Y4 2025–26"}
+  "bsnt:2758":      {title: "Checklist đọc X-quang ngực thẳng trong tim mạch", author: "", org: "Kho ôn thi BSNT — ĐHYD TP.HCM"}
+  "lectures:10925": {title: "Đọc X quang phổi — các bước ABCDEF", author: "TS.BS Đỗ Thị Tường Oanh", org: "ĐH Y khoa Phạm Ngọc Thạch"}
+  "lectures:11747": {title: "Phân tích phim X quang ngực", author: "ThS.BS Trần Thị Thúy Tường", org: "Bộ môn Nội, ĐHYD TP.HCM"}
+  "lectures:11334": {title: "Form đọc X quang", author: "", org: "BV Nhi Đồng 2 — Bộ môn Nhi"}
+  "lectures:13575": {title: "Bảng kiểm đọc X quang phổi (trạm OSCE)", author: "", org: ""}
+  "lectures:8244":  {title: "CT ngực — CLS hè 2020", author: "ThS.BS Hoàng Đình Dương", org: "ĐH Y khoa Phạm Ngọc Thạch"}
+  "yhoc8003:26093": {title: "Cách đọc CT ngực", author: "BS Nguyễn Quý Khoáng, BS Nguyễn Quang Trọng", org: ""}
+  "lectures:9222":  {title: "CT bụng — cách đọc CT bụng chậu", author: "TS.BS Nghiêm Phương Thảo", org: "Bộ môn CĐHA, ĐH Y khoa Phạm Ngọc Thạch"}
+  "lectures:14709": {title: "Bảng kiểm — Rèn luyện đọc phim CT-scan bụng cơ bản", author: "", org: "CLB Ngoại khoa Trưng Vương, ĐH Y khoa Phạm Ngọc Thạch"}
+  "yhoc8003:21719": {title: "CT sọ não (đọc phim CT đầu — ABBCS)", author: "ThS.BS Nguyễn Minh Đức", org: ""}
+  "lectures:8722":  {title: "Tiếp cận CT sọ não", author: "BS Nguyễn Minh Đức", org: ""}
+  "yhoc8003:20239": {title: "Hình ảnh học cấp cứu — CT sọ não", author: "ThS.BS Nguyễn Minh Đức", org: ""}
+  "lectures:14262": {title: "Hình ảnh CT trong đột quỵ", author: "BS Nguyễn Thị Tuyên Trân", org: ""}
+  "lectures:15498": {title: "Hình ảnh học đột quỵ", author: "BS Nguyễn Thị Tuyên Trân", org: ""}
+  "lectures:14738": {title: "MRI lý thuyết", author: "", org: "ĐHYD TP.HCM, CĐHA Y3"}
+  "yhoc8003:21056": {title: "Giải phẫu cắt lớp CT-MRI, T1 — Phần đầu-cổ", author: "", org: ""}
+
+# route = "<modality>_<region>". Router (LLM, từ caption + câu hỏi) trả modality ∈ {xray, ct, mri} và
+# region ∈ {chest, abdomen_pelvis, head, neck}; tổ hợp không có route riêng đi qua `aliases`, còn lại → generic.
+routes:
+  xray_chest:        {derived: false}
+  ct_chest:          {derived: false}
+  ct_abdomen_pelvis: {derived: false}
+  ct_head:           {derived: false}
+  mri_head:          {derived: true}
+  ct_neck:           {derived: true}
+  generic:           {derived: true}
+aliases:
+  mri_abdomen_pelvis: ct_abdomen_pelvis
+  mri_chest: ct_chest
+  mri_neck: ct_neck
+  xray_abdomen_pelvis: generic
+  xray_head: generic
+  xray_neck: generic
+
+nodes:
+  # ───────────── X-quang ngực ─────────────
+  - {id: xc, type: root, route: xray_chest, en: "chest radiograph"}
+  - {id: xc.A,  type: structure, parent: xc, en: "airways (trachea, carina, main bronchi)"}
+  - {id: xc.B,  type: structure, parent: xc, en: "both lung fields"}
+  - {id: xc.H,  type: structure, parent: xc, en: "hila"}
+  - {id: xc.P,  type: structure, parent: xc, en: "pleura"}
+  - {id: xc.C,  type: structure, parent: xc, en: "cardiac silhouette"}
+  - {id: xc.M,  type: structure, parent: xc, en: "mediastinum"}
+  - {id: xc.D,  type: structure, parent: xc, en: "diaphragm and costophrenic angles"}
+  - {id: xc.E,  type: structure, parent: xc, en: "bones and chest-wall soft tissue"}
+  - {id: xc.F,  type: structure, parent: xc, en: "devices and foreign bodies"}
+  - {id: xc.B.lucent,  type: finding, parent: xc.B, en: "abnormal lucency"}
+  - {id: xc.B.homog,   type: finding, parent: xc.B, en: "homogeneous opacity"}
+  - {id: xc.B.alveolar, type: finding, parent: xc.B, en: "airspace (alveolar) opacity"}
+  - {id: xc.B.silh,    type: finding, parent: xc.B, en: "silhouette sign"}
+  - {id: xc.B.inter,   type: finding, parent: xc.B, en: "interstitial pattern"}
+  - {id: xc.B.nodule,  type: finding, parent: xc.B, en: "nodule or mass"}
+  - {id: xc.B.cavity,  type: finding, parent: xc.B, en: "cavity / air-fluid level"}
+  - {id: xc.B.edema,   type: finding, parent: xc.B, en: "pulmonary oedema pattern"}
+  - {id: xc.P.eff,     type: finding, parent: xc.P, en: "pleural effusion"}
+  - {id: xc.P.ptx,     type: finding, parent: xc.P, en: "pneumothorax"}
+  - {id: xc.C.size,    type: finding, parent: xc.C, en: "cardiothoracic ratio"}
+  - {id: xc.C.arcs,    type: finding, parent: xc.C, en: "cardiac borders (arcs)"}
+  - {id: xc.M.mass,    type: finding, parent: xc.M, en: "mediastinal mass"}
+  - {id: xc.M.shift,   type: finding, parent: xc.M, en: "tracheal / mediastinal shift"}
+  - {id: xc.D.freeair, type: finding, parent: xc.D, en: "free air under the diaphragm"}
+  - {id: xc.D.flat,    type: finding, parent: xc.D, en: "flattened diaphragm"}
+  - {id: xc.E.bone,    type: finding, parent: xc.E, en: "fracture / bone destruction"}
+  - {id: xc.E.sce,     type: finding, parent: xc.E, en: "subcutaneous emphysema"}
+  - {id: xc.desc,      type: descriptor, parent: xc, en: "lesion description"}
+
+  # ───────────── CT ngực ─────────────
+  - {id: cc, type: root, route: ct_chest, en: "chest CT"}
+  - {id: cc.lung,  type: structure, parent: cc, en: "lung parenchyma (lung window)"}
+  - {id: cc.air,   type: structure, parent: cc, en: "trachea and bronchi"}
+  - {id: cc.pl,    type: structure, parent: cc, en: "pleura"}
+  - {id: cc.heart, type: structure, parent: cc, en: "heart and pericardium"}
+  - {id: cc.vess,  type: structure, parent: cc, en: "aorta and pulmonary arteries"}
+  - {id: cc.node,  type: structure, parent: cc, en: "mediastinal and axillary lymph nodes"}
+  - {id: cc.wall,  type: structure, parent: cc, en: "chest wall, thyroid, oesophagus"}
+  - {id: cc.bone,  type: structure, parent: cc, en: "bones (bone window)"}
+  - {id: cc.lung.les,  type: finding, parent: cc.lung, en: "focal lung lesion"}
+  - {id: cc.lung.int,  type: finding, parent: cc.lung, en: "interstitial change / fibrosis / bulla"}
+  - {id: cc.pl.eff,    type: finding, parent: cc.pl, en: "pleural fluid or air"}
+  - {id: cc.heart.pe,  type: finding, parent: cc.heart, en: "pericardial effusion / coronary calcification"}
+  - {id: cc.vess.an,   type: finding, parent: cc.vess, en: "stenosis / aneurysm / dissection"}
+  - {id: cc.bone.lysis, type: finding, parent: cc.bone, en: "bone destruction"}
+  - {id: cc.desc,      type: descriptor, parent: cc, en: "lesion description"}
+
+  # ───────────── CT bụng – chậu ─────────────
+  - {id: ab, type: root, route: ct_abdomen_pelvis, en: "abdominal / pelvic CT"}
+  - {id: ab.base,   type: structure, parent: ab, en: "lung bases"}
+  - {id: ab.liver,  type: structure, parent: ab, en: "liver"}
+  - {id: ab.gb,     type: structure, parent: ab, en: "gallbladder and bile ducts"}
+  - {id: ab.spleen, type: structure, parent: ab, en: "spleen"}
+  - {id: ab.panc,   type: structure, parent: ab, en: "pancreas"}
+  - {id: ab.kid,    type: structure, parent: ab, en: "kidneys and adrenal glands"}
+  - {id: ab.bowel,  type: structure, parent: ab, en: "stomach and bowel"}
+  - {id: ab.pelvis, type: structure, parent: ab, en: "bladder and pelvic organs"}
+  - {id: ab.vess,   type: structure, parent: ab, en: "abdominal vessels"}
+  - {id: ab.bone,   type: structure, parent: ab, en: "bones"}
+  - {id: ab.liver.les, type: finding, parent: ab.liver, en: "liver parenchyma / focal lesion"}
+  - {id: ab.gb.stone,  type: finding, parent: ab.gb, en: "gallbladder wall / stones"}
+  - {id: ab.panc.inf,  type: finding, parent: ab.panc, en: "pancreatic size / peripancreatic fat"}
+  - {id: ab.kid.hyd,   type: finding, parent: ab.kid, en: "hydronephrosis / asymmetric enhancement"}
+  - {id: ab.kid.adr,   type: finding, parent: ab.kid, en: "adrenal limb thickening"}
+  - {id: ab.bowel.wall, type: finding, parent: ab.bowel, en: "bowel distension / wall thickening"}
+  - {id: ab.pelvis.bl, type: finding, parent: ab.pelvis, en: "bladder wall / pelvic mass"}
+  - {id: ab.bone.met,  type: finding, parent: ab.bone, en: "bone metastasis / degeneration"}
+  - {id: ab.desc,      type: descriptor, parent: ab, en: "lesion description"}
+
+  # ───────────── CT sọ não (ABBCS) ─────────────
+  - {id: hc, type: root, route: ct_head, en: "head CT"}
+  - {id: hc.blood, type: structure, parent: hc, en: "blood (B): hemispheres, ventricles, sulci"}
+  - {id: hc.brain, type: structure, parent: hc, en: "brain parenchyma (B): density, midline, grey–white"}
+  - {id: hc.csf,   type: structure, parent: hc, en: "CSF spaces (C): ventricles, sulci, cisterns"}
+  - {id: hc.skull, type: structure, parent: hc, en: "skull and scalp (S), bone window"}
+  - {id: hc.blood.extra, type: finding, parent: hc.blood, en: "extra-axial haematoma"}
+  - {id: hc.blood.sah,   type: finding, parent: hc.blood, en: "subarachnoid / intraventricular haemorrhage"}
+  - {id: hc.brain.hypo,  type: finding, parent: hc.brain, en: "hypodense area (oedema / infarct)"}
+  - {id: hc.brain.early, type: finding, parent: hc.brain, en: "early ischaemic signs"}
+  - {id: hc.brain.shift, type: finding, parent: hc.brain, en: "midline shift / mass effect"}
+  - {id: hc.csf.herni,   type: finding, parent: hc.csf, en: "effaced cisterns / herniation"}
+  - {id: hc.skull.fx,    type: finding, parent: hc.skull, en: "skull fracture"}
+  - {id: hc.desc,        type: descriptor, parent: hc, en: "lesion description"}
+
+  # ───────────── MRI sọ não (SUY RA: ABBCS + bảng tín hiệu T1/T2) ─────────────
+  - {id: hm, type: root, route: mri_head, en: "brain MRI"}
+  - {id: hm.par,  type: structure, parent: hm, en: "brain parenchyma signal"}
+  - {id: hm.mid,  type: structure, parent: hm, en: "midline structures"}
+  - {id: hm.csf,  type: structure, parent: hm, en: "ventricles and sulci"}
+  - {id: hm.par.focal, type: finding, parent: hm.par, en: "focal signal abnormality"}
+  - {id: hm.par.bleed, type: finding, parent: hm.par, en: "haemorrhage signal"}
+  - {id: hm.mid.shift, type: finding, parent: hm.mid, en: "mass effect / midline shift"}
+  - {id: hm.csf.hydro, type: finding, parent: hm.csf, en: "ventricular enlargement / effacement"}
+  - {id: hm.desc,      type: descriptor, parent: hm, en: "lesion description"}
+
+  # ───────────── CT cổ (SUY RA: giải phẫu cắt lớp + cách mô tả tổn thương) ─────────────
+  - {id: nk, type: root, route: ct_neck, en: "neck CT"}
+  - {id: nk.air,  type: structure, parent: nk, en: "airway (larynx, trachea)"}
+  - {id: nk.thy,  type: structure, parent: nk, en: "thyroid gland"}
+  - {id: nk.vess, type: structure, parent: nk, en: "carotid arteries and jugular veins"}
+  - {id: nk.soft, type: structure, parent: nk, en: "soft tissues and lymph nodes"}
+  - {id: nk.spine, type: structure, parent: nk, en: "cervical spine"}
+  - {id: nk.air.dev, type: finding, parent: nk.air, en: "airway narrowing / deviation"}
+  - {id: nk.soft.mass, type: finding, parent: nk.soft, en: "neck mass / enlarged node"}
+  - {id: nk.desc,  type: descriptor, parent: nk, en: "lesion description"}
+
+  # ───────────── generic (dự phòng khi không định tuyến được) ─────────────
+  - {id: gn, type: root, route: generic, en: "medical image"}
+  - {id: gn.org,  type: structure, parent: gn, en: "visible organs"}
+  - {id: gn.org.abn, type: finding, parent: gn.org, en: "abnormal organ"}
+  - {id: gn.desc, type: descriptor, parent: gn, en: "lesion description"}
+
+questions:
+  # ═════════════ X-QUANG NGỰC ═════════════
+  # tầng 1 — kỹ thuật & quan sát chung
+  - id: xc.t.proj
+    node: xc
+    tier: 1
+    vi_src: "Đọc các tiêu chuẩn kỹ thuật — Phim đứng/nằm (PA/AP)"
+    src: "bsnt:2755#0"
+    en_open: "Is this chest radiograph an upright PA film or a supine AP film?"
+    en_yn: "Is this chest radiograph an upright PA film?"
+  - id: xc.t.insp
+    node: xc
+    tier: 1
+    vi_src: "HÍT ĐỦ SÂU — Cung sườn 9 sau, cung sườn 6 trước nằm trên cơ hoành"
+    src: "lectures:11747#0"
+    en_open: "How many posterior ribs are visible above the right hemidiaphragm — is inspiration adequate?"
+    en_yn: "Is inspiration adequate, with about nine posterior ribs visible above the diaphragm?"
+  - id: xc.t.rot
+    node: xc
+    tier: 1
+    vi_src: "Thẳng hay xoay: Đường nối các gai sống; Vị trí khớp ức đòn"
+    src: "lectures:11334#0"
+    en_open: "Are the spinous processes centred between the medial ends of the clavicles, or is the patient rotated?"
+    en_yn: "Is the patient rotated on this film?"
+  - id: xc.t.pen
+    node: xc
+    tier: 1
+    vi_src: "Cường độ tia: thấy rõ 4 đốt sống ngực đầu tiên; Tia quá mềm không thấy chi tiết trong trung thất, tia quá cứng không thấy chi tiết trong nhu mô"
+    src: "lectures:11334#0"
+    also: ["lectures:11747#0"]
+    en_open: "Is the exposure adequate — are the upper thoracic vertebrae seen through the mediastinum without losing lung detail?"
+    en_yn: "Is the exposure (penetration) of this film adequate?"
+  - id: xc.t.situs
+    node: xc
+    tier: 1
+    vi_src: "Situs solitus/inversus"
+    src: "bsnt:2755#0"
+    en_open: "Are the cardiac apex, aortic arch and gastric air bubble on the left side (situs solitus)?"
+    en_yn: "Are the cardiac apex, aortic arch and gastric air bubble on the left side?"
+  - id: xc.t.overall
+    node: xc
+    tier: 1
+    vi_src: "Nhận diện được các cấu trúc giải phẫu bình thường (nêu các vùng không bệnh lý)"
+    src: "bsnt:2755#0"
+    en_open: "Which regions of this chest radiograph look normal, and which region looks abnormal?"
+    en_yn: "Is there any visible abnormality on this chest radiograph?"
+
+  # tầng 2 — trình tự giải phẫu ABCDEF
+  - id: xc.s.A
+    node: xc.A
+    tier: 2
+    vi_src: "A: Airways — Quan sát: Khí quản, Phế quản gốc 2 bên, Carina. Chú ý 2 bất thường: Di lệch – Hẹp"
+    src: "lectures:10925#1"
+    en_open: "Is the trachea midline, and are the carina and main bronchi normal, displaced or narrowed?"
+    en_yn: "Is the trachea deviated from the midline?"
+  - id: xc.s.B
+    node: xc.B
+    tier: 2
+    vi_src: "B: Breathing (2 phế trường – Rốn phổi). Quan sát 2 phế trường: Hình sáng; Hình mờ"
+    src: "lectures:10925#1"
+    en_open: "Comparing both lung fields, is there any abnormal lucency or opacity, and on which side?"
+    en_yn: "Is there an abnormal opacity or lucency in either lung field?"
+  - id: xc.s.H
+    node: xc.H
+    tier: 2
+    vi_src: "Rốn phổi P thường thấp hơn rốn phổi T # 1,5cm. Quan sát: Vị trí, Kích thước, Di lệch"
+    src: "lectures:10925#3"
+    en_open: "Are both hila normal in position and size?"
+    en_yn: "Is either hilum enlarged or displaced?"
+  - id: xc.s.P
+    node: xc.P
+    tier: 2
+    vi_src: "Cơ hoành, màng phổi"
+    src: "bsnt:2755#0"
+    en_open: "Is the pleural outline along both lungs normal?"
+    en_yn: "Is there a visible pleural abnormality?"
+  - id: xc.s.C
+    node: xc.C
+    tier: 2
+    vi_src: "C: Cardiovascular (Tim mạch) — Kích thước bóng tim; Các cung T, cung P của bóng tim"
+    src: "lectures:10925#3"
+    en_open: "What are the size and shape of the cardiac silhouette?"
+    en_yn: "Is the cardiac silhouette abnormal in size or shape?"
+  - id: xc.s.M
+    node: xc.M
+    tier: 2
+    vi_src: "Trung thất, bóng tim"
+    src: "bsnt:2755#0"
+    en_open: "Is the mediastinum normal in width and position?"
+    en_yn: "Is the mediastinum widened or shifted?"
+  - id: xc.s.D
+    node: xc.D
+    tier: 2
+    vi_src: "D: Diaphragm — Quan sát các góc sườn hoành, tâm hoành; Độ cong và vị trí của cơ hoành 2 bên; Bóng hơi dạ dày dưới cơ hoành"
+    src: "lectures:10925#4"
+    en_open: "Are both costophrenic angles sharp, and are the hemidiaphragms normal in position and contour?"
+    en_yn: "Is either costophrenic angle blunted?"
+  - id: xc.s.E
+    node: xc.E
+    tier: 2
+    vi_src: "E: Else (Xương, phần mềm) — Các cung xương sườn 2 bên, Xương đòn, Xương bả vai, Xương cánh tay; Phần mềm: Tuyến vú, Cơ, Mô mềm ở ngực"
+    src: "lectures:10925#4"
+    en_open: "Are the ribs, clavicles, scapulae and chest-wall soft tissues normal?"
+    en_yn: "Is there an abnormality of the ribs, clavicles or chest-wall soft tissues?"
+  - id: xc.s.F
+    node: xc.F
+    tier: 2
+    vi_src: "F: Foreign objects (Ngoại vật) — Máy tạo nhịp tim"
+    src: "lectures:10925#4"
+    en_open: "Are any tubes, lines, pacemakers or other foreign bodies visible?"
+    en_yn: "Is any medical device or foreign body visible?"
+
+  # tầng 3 — dấu hiệu chi tiết
+  - id: xc.f.lucent
+    node: xc.B.lucent
+    tier: 3
+    vi_src: "Hình sáng: Tràn khí màng phổi, kén khí, khí phế thủng"
+    src: "lectures:10925#1"
+    en_open: "Is there an area of increased lucency without lung markings (pneumothorax, bulla) or diffuse hyperlucency (emphysema)?"
+    en_yn: "Is there an area of abnormal lucency without lung markings?"
+  - id: xc.f.homog
+    node: xc.B.homog
+    tier: 3
+    vi_src: "Hình mờ đồng nhất: Xẹp phổi (lõm vào trong, kéo lệch khí quản và/hoặc bóng tim về phía xẹp); Tràn dịch màng phổi (đẩy lệch khí quản và bóng tim về phía đối bên)"
+    src: "lectures:10925#1"
+    en_open: "Is there a homogeneous opacity, and does it pull the trachea and heart toward it (collapse) or push them away (effusion)?"
+    en_yn: "Is there a homogeneous opacity in either hemithorax?"
+  - id: xc.f.alveolar
+    node: xc.B.alveolar
+    tier: 3
+    vi_src: "Hình mờ dạng phế nang: giới hạn không rõ, thường phân bố theo thùy hoặc phân thùy, có thể có air-bronchogram"
+    src: "lectures:10925#2"
+    en_open: "Is there an ill-defined airspace opacity in a lobar or segmental distribution, with air bronchograms?"
+    en_yn: "Is there an airspace opacity with air bronchograms?"
+  - id: xc.f.silh
+    node: xc.B.silh
+    tier: 3
+    vi_src: "Silhouette sign (+): Không nhìn thấy được giới hạn của các cơ quan trong lồng ngực nằm cạnh bên do có cùng đậm độ"
+    src: "lectures:10925#2"
+    en_open: "Does the opacity obscure the adjacent heart border or hemidiaphragm (silhouette sign), and which lobe does that point to?"
+    en_yn: "Does the opacity obscure the adjacent heart border or hemidiaphragm?"
+  - id: xc.f.inter
+    node: xc.B.inter
+    tier: 3
+    vi_src: "Hình mờ dạng mô kẽ: không phân bố theo thùy, phân thùy; giới hạn rõ; không có air-bronchogram; hình lưới, nốt và lưới – nốt"
+    src: "lectures:10925#2"
+    en_open: "Is there a diffuse reticular, nodular or reticulonodular (interstitial) pattern in both lungs?"
+    en_yn: "Is there a diffuse reticular or nodular pattern in the lungs?"
+  - id: xc.f.nodule
+    node: xc.B.nodule
+    tier: 3
+    vi_src: "NỐT PHỔI - U PHỔI: Hình mờ dạng tròn giới hạn rõ; Nốt phổi: 2R < 3cm; U phổi: 2R > 3cm"
+    src: "lectures:10925#3"
+    en_open: "Is there a well-defined round opacity, and is it a nodule (under 3 cm) or a mass (over 3 cm)?"
+    en_yn: "Is there a round nodule or mass in the lungs?"
+  - id: xc.f.cavity
+    node: xc.B.cavity
+    tier: 3
+    vi_src: "Abces phổi: Hình mờ dạng tròn, khu trú, bên trong sáng, giới hạn khá rõ, thường có mức khí – dịch. Hang lao: không có mực khí – dịch"
+    src: "lectures:10925#3"
+    en_open: "Does the focal opacity contain air (a cavity), and is there an air–fluid level inside it?"
+    en_yn: "Is there a cavity with an air-fluid level?"
+  - id: xc.f.edema
+    node: xc.B.edema
+    tier: 3
+    vi_src: "PHÙ PHỔI: Hình mờ không đồng nhất lan tỏa 2 phế trường, giới hạn không rõ, thường có hình cánh dơi. Phù phổi do tim: Đường Kerley B"
+    src: "lectures:10925#2"
+    en_open: "Is there a bilateral perihilar 'bat-wing' opacity or Kerley B lines?"
+    en_yn: "Is there a bilateral perihilar bat-wing opacity?"
+  - id: xc.f.eff
+    node: xc.P.eff
+    tier: 3
+    vi_src: "TDMP vừa hoặc ít: Hình mờ đồng nhất ở đáy phổi làm mất góc sườn hoành và có giới hạn trên là đường cong Damoiseau"
+    src: "lectures:10925#2"
+    en_open: "Is there a homogeneous basal opacity with a curved upper border (meniscus) that blunts the costophrenic angle?"
+    en_yn: "Is there a pleural effusion blunting the costophrenic angle?"
+  - id: xc.f.ptx
+    node: xc.P.ptx
+    tier: 3
+    vi_src: "TRÀN KHÍ MÀNG PHỔI: Đường viền màu trắng của màng phổi tạng do sự tương phản của khí và mô phổi; Không thấy mạch máu ở vùng tràn khí"
+    src: "lectures:11747#1"
+    en_open: "Is a visceral pleural line visible with no lung markings beyond it?"
+    en_yn: "Is there a pneumothorax?"
+  - id: xc.f.ctr
+    node: xc.C.size
+    tier: 3
+    vi_src: "Kích thước bóng tim: Chiều ngang lớn nhất bóng tim < 0,5 chiều ngang lớn nhất lồng ngực. Lưu ý chỉ đo trên phim PA"
+    src: "lectures:10925#3"
+    en_open: "Is the cardiothoracic ratio greater than 0.5?"
+    en_yn: "Is the cardiothoracic ratio greater than 0.5?"
+  - id: xc.f.arcs
+    node: xc.C.arcs
+    tier: 3
+    vi_src: "Các cung T của bóng tim; Các cung P của bóng tim; Phồng cung động mạch phổi"
+    src: "lectures:10925#3"
+    en_open: "Are the left and right heart borders normal, or is any cardiac arc (e.g. the pulmonary artery) bulging?"
+    en_yn: "Is any cardiac arc abnormally prominent?"
+  - id: xc.f.mmass
+    node: xc.M.mass
+    tier: 3
+    vi_src: "Trung thất trước: U quái, U tuyến ức, Tuyến giáp thòng, Lymphoma; Trung thất giữa: Hạch to…; Trung thất sau: U thần kinh…"
+    src: "lectures:11747#3"
+    en_open: "Is there a mediastinal mass, and is it in the anterior, middle or posterior mediastinum?"
+    en_yn: "Is there a mediastinal mass?"
+  - id: xc.f.shift
+    node: xc.M.shift
+    tier: 3
+    vi_src: "Xẹp phổi … có thể kéo lệch khí quản và/hoặc bóng tim về phía xẹp phổi; Tràn dịch màng phổi … thường đẩy lệch khí quản và bóng tim về phía đối bên"
+    src: "lectures:10925#1"
+    en_open: "Toward which side are the trachea and heart shifted?"
+    en_yn: "Are the trachea and heart shifted to one side?"
+  - id: xc.f.freeair
+    node: xc.D.freeair
+    tier: 3
+    vi_src: "Liềm hơi dưới cơ hoành — Chỉ thấy khi chụp tư thế đứng hoặc ngồi — Dấu hiệu thủng tạng rỗng"
+    src: "lectures:10925#4"
+    en_open: "Is there a crescent of free air under either hemidiaphragm?"
+    en_yn: "Is there free air under the diaphragm?"
+  - id: xc.f.flat
+    node: xc.D.flat
+    tier: 3
+    vi_src: "Cơ hoành dẹt. Gặp trong Khí phế thủng (đều 2 bên)…"
+    src: "lectures:10925#4"
+    en_open: "Are the hemidiaphragms flattened?"
+    en_yn: "Are the hemidiaphragms flattened?"
+  - id: xc.f.bone
+    node: xc.E.bone
+    tier: 3
+    vi_src: "Xương — Các bất thường: Gãy xương; Xương biến dạng hoặc di lệch; Hủy xương"
+    src: "lectures:10925#4"
+    en_open: "Is there a rib fracture, bone deformity or bone destruction?"
+    en_yn: "Is there a fracture or bone destruction?"
+  - id: xc.f.sce
+    node: xc.E.sce
+    tier: 3
+    vi_src: "TRÀN KHÍ DƯỚI DA — Chú ý khi bệnh nhân có TKMP, TK trung thất, hoặc sau thủ thuật"
+    src: "lectures:11747#1"
+    en_open: "Is there subcutaneous emphysema in the chest wall?"
+    en_yn: "Is there subcutaneous emphysema in the chest wall?"
+  - id: xc.d.lesion
+    node: xc.desc
+    tier: 3
+    vi_src: "Mô tả các hình ảnh bất thường theo đậm độ và hội chứng — Hình sáng / Hình mờ: vị trí, phân bố, đường bờ, kích thước…"
+    src: "bsnt:2755#0"
+    en_open: "Describe the abnormality: its side and zone, distribution, margins and approximate size."
+    en_yn: "Is the abnormality well-defined?"
+
+  # ═════════════ CT NGỰC ═════════════
+  - id: cc.t.window
+    node: cc
+    tier: 1
+    vi_src: "PHÂN BIỆT HÌNH CỬA SỔ TRUNG THẤT VÀ CỬA SỔ PHỔI"
+    src: "yhoc8003:26093#0"
+    en_open: "Is this chest CT shown in a lung window, a mediastinal (soft-tissue) window or a bone window?"
+    en_yn: "Is this chest CT shown in a lung window?"
+  - id: cc.t.contrast
+    node: cc
+    tier: 1
+    vi_src: "XEM HÌNH KHÔNG CHÍCH CHẤT TƯƠNG PHẢN (CE-) TRƯỚC RỒI MỚI ĐẾN HÌNH CÓ CHÍCH CHẤT TƯƠNG PHẢN (CE+)"
+    src: "yhoc8003:26093#0"
+    en_open: "Is this CT image non-contrast or contrast-enhanced?"
+    en_yn: "Is this a contrast-enhanced CT image?"
+  - id: cc.t.orient
+    node: cc
+    tier: 1
+    vi_src: "HÌNH CẮT NGANG NGỰC (TRANSVERSE) ĐƯỢC NHÌN TỪ DƯỚI CHÂN BỆNH NHÂN … BÊN PHẢI HÌNH LÀ BÊN TRÁI BỆNH NHÂN; HÌNH TÁI TẠO … CORONAL GIỐNG PHIM X QUANG NGỰC THẲNG"
+    src: "yhoc8003:26093#0"
+    en_open: "In which plane is this CT image displayed (axial, coronal or sagittal)?"
+    en_yn: "Is this an axial CT image?"
+  - id: cc.s.lung
+    node: cc.lung
+    tier: 2
+    vi_src: "Cửa sổ phổi: xem tràn khí màng phổi và trung thất, kén khí, xơ, các tổn thương mô kẽ — Nhu mô phổi"
+    src: "lectures:8244#2"
+    en_open: "Is the lung parenchyma normal in both lungs on this image?"
+    en_yn: "Is there an abnormality in the lung parenchyma?"
+  - id: cc.s.air
+    node: cc.air
+    tier: 2
+    vi_src: "Khí phế quản"
+    src: "lectures:8244#2"
+    en_open: "Are the trachea and bronchi patent and normal in calibre?"
+    en_yn: "Is the trachea or a bronchus narrowed or displaced?"
+  - id: cc.s.pl
+    node: cc.pl
+    tier: 2
+    vi_src: "Bệnh lý xoang màng phổi; Rãnh màng phổi"
+    src: "lectures:8244#2"
+    en_open: "Is the pleural space normal on both sides?"
+    en_yn: "Is there a pleural abnormality?"
+  - id: cc.s.heart
+    node: cc.heart
+    tier: 2
+    vi_src: "Tim: các buồng tim, màng ngoài tim (TDMT), vôi hóa mạch vành"
+    src: "lectures:8244#2"
+    en_open: "Are the heart chambers and pericardium normal?"
+    en_yn: "Is the heart or pericardium abnormal?"
+  - id: cc.s.vess
+    node: cc.vess
+    tier: 2
+    vi_src: "Mạch máu: ĐMC, ĐM phổi, các nhánh (hẹp/ phình, bóc tách…)"
+    src: "lectures:8244#2"
+    en_open: "Are the aorta and pulmonary arteries normal in calibre?"
+    en_yn: "Is the aorta or pulmonary artery abnormal?"
+  - id: cc.s.node
+    node: cc.node
+    tier: 2
+    vi_src: "Hạch: trung thất, hạch nách"
+    src: "lectures:8244#2"
+    en_open: "Are there enlarged mediastinal or axillary lymph nodes?"
+    en_yn: "Are there enlarged mediastinal or axillary lymph nodes?"
+  - id: cc.s.wall
+    node: cc.wall
+    tier: 2
+    vi_src: "Tuyến giáp: kích thước, đậm độ; Thành ngực: mô mềm, tuyến vú; Thực quản"
+    src: "lectures:8244#2"
+    en_open: "Are the chest wall, breasts, thyroid and oesophagus normal?"
+    en_yn: "Is there an abnormality of the chest wall, thyroid or oesophagus?"
+  - id: cc.s.bone
+    node: cc.bone
+    tier: 2
+    vi_src: "Cửa sổ xương: thấy rõ hơn hình ảnh hủy xương, chi tiết xương"
+    src: "lectures:8244#2"
+    en_open: "Are the visible bones (ribs, sternum, vertebrae) intact?"
+    en_yn: "Is there a bone abnormality?"
+  - id: cc.f.les
+    node: cc.lung.les
+    tier: 3
+    vi_src: "Cấu trúc bên trong (đóng vôi, tạo hang, liềm khí…)"
+    src: "lectures:8244#3"
+    en_open: "Is there a focal lung lesion, and does it contain calcification, a cavity or an air crescent?"
+    en_yn: "Is there a focal lesion in the lung?"
+  - id: cc.f.int
+    node: cc.lung.int
+    tier: 3
+    vi_src: "Cửa sổ phổi: … kén khí, xơ, các tổn thương mô kẽ"
+    src: "lectures:8244#2"
+    en_open: "Are there bullae, fibrosis or interstitial changes in the lungs?"
+    en_yn: "Are there bullae, fibrosis or interstitial changes?"
+  - id: cc.f.eff
+    node: cc.pl.eff
+    tier: 3
+    vi_src: "Cửa sổ phổi: xem tràn khí màng phổi và trung thất"
+    src: "lectures:8244#2"
+    en_open: "Is there pleural fluid, pneumothorax or pneumomediastinum?"
+    en_yn: "Is there a pleural effusion or pneumothorax?"
+  - id: cc.f.pe
+    node: cc.heart.pe
+    tier: 3
+    vi_src: "màng ngoài tim (TDMT), vôi hóa mạch vành"
+    src: "lectures:8244#2"
+    en_open: "Is there a pericardial effusion or coronary artery calcification?"
+    en_yn: "Is there a pericardial effusion?"
+  - id: cc.f.an
+    node: cc.vess.an
+    tier: 3
+    vi_src: "ĐMC, ĐM phổi, các nhánh (hẹp/ phình, bóc tách…)"
+    src: "lectures:8244#2"
+    en_open: "Is there stenosis, aneurysm or dissection of the aorta or pulmonary arteries?"
+    en_yn: "Is there an aortic aneurysm or dissection?"
+  - id: cc.f.lysis
+    node: cc.bone.lysis
+    tier: 3
+    vi_src: "Cửa sổ xương: thấy rõ hơn hình ảnh hủy xương"
+    src: "lectures:8244#2"
+    en_open: "Is there any lytic or destructive bone lesion?"
+    en_yn: "Is there a lytic bone lesion?"
+  - id: cc.d.lesion
+    node: cc.desc
+    tier: 3
+    vi_src: "CÁCH MÔ TẢ TỔN THƯƠNG: Vị trí, Kích thước, Hình dạng, Đường bờ, Cấu trúc bên trong, Đậm độ (trước và sau tiêm thuốc), Liên quan cấu trúc xung quanh"
+    src: "lectures:8244#3"
+    en_open: "Describe the lesion: location, size, shape, margins, internal structure, density and relation to surrounding structures."
+    en_yn: "Is the lesion well-defined?"
+
+  # ═════════════ CT BỤNG – CHẬU ═════════════
+  - id: ab.t.mod
+    node: ab
+    tier: 1
+    vi_src: "Nhận biết được phim CT-scan — Phân biệt được CT-scan và MRI"
+    src: "lectures:14709#0"
+    en_open: "Is this abdominal image a CT scan or an MRI scan?"
+    en_yn: "Is this abdominal image a CT scan?"
+  - id: ab.t.phase
+    node: ab
+    tier: 1
+    vi_src: "Xác định được các thì của phim"
+    src: "lectures:14709#0"
+    en_open: "Which phase is this CT image: non-contrast, arterial or portal venous?"
+    en_yn: "Is this a contrast-enhanced CT image?"
+  - id: ab.t.level
+    node: ab
+    tier: 1
+    vi_src: "Các lát cắt phía cao ổ bụng thường gặp: đáy phổi, gan, lách…; Các lát cắt phần thấp của vùng chậu: bàng quang, tiền liệt tuyến, tử cung, trực tràng"
+    src: "lectures:9222#2"
+    en_open: "At what level is this axial slice — upper abdomen, mid-abdomen or pelvis — and which organs does it include?"
+    en_yn: "Is this slice at the level of the upper abdomen?"
+  - id: ab.s.base
+    node: ab.base
+    tier: 2
+    vi_src: "Đáy phổi: nốt, thâm nhiễm, sẹo, tràn dịch, xẹp phổi"
+    src: "lectures:9222#1"
+    en_open: "If the lung bases are included, are they clear of nodules, infiltrates, effusion or collapse?"
+    en_yn: "Is there an abnormality at the lung bases?"
+  - id: ab.s.liver
+    node: ab.liver
+    tier: 2
+    vi_src: "Gan: kích thước, đậm độ nhu mô đồng nhất, bắt chất cản quang đồng dạng, đm gan, tm cửa, tm gan"
+    src: "lectures:9222#1"
+    en_open: "Is the liver normal in size, with homogeneous parenchymal density?"
+    en_yn: "Is the liver abnormal in size or density?"
+  - id: ab.s.gb
+    node: ab.gb
+    tier: 2
+    vi_src: "Đường mật và túi mật: các ống mật nhìn thấy được, độ dày thành, độ căng của túi mật, sỏi đậm độ thấp / cao"
+    src: "lectures:9222#1"
+    en_open: "Are the gallbladder and bile ducts normal?"
+    en_yn: "Is the gallbladder or biliary tree abnormal?"
+  - id: ab.s.spleen
+    node: ab.spleen
+    tier: 2
+    vi_src: "Lách: kích thước, bắt thuốc không đồng nhất/ thì sớm, đồng nhất/ thì muộn, lách phụ"
+    src: "lectures:9222#1"
+    en_open: "Is the spleen normal in size and density?"
+    en_yn: "Is the spleen enlarged or abnormal?"
+  - id: ab.s.panc
+    node: ab.panc
+    tier: 2
+    vi_src: "Tụy: kích thước, vị trí, đầu, cổ, thân, đuôi tụy; nhận định ống tụy, tĩnh mạch lách, mỡ quanh tụy"
+    src: "lectures:9222#1"
+    en_open: "Is the pancreas (head, body, tail) normal in size and outline?"
+    en_yn: "Is the pancreas abnormal?"
+  - id: ab.s.kid
+    node: ab.kid
+    tier: 2
+    vi_src: "Thận: kích thước, bắt thuốc đối xứng, ứ các đài, bể thận và niệu quản; vị trí và hướng của thận. Thượng thận: dạng Y hay V"
+    src: "lectures:9222#2"
+    en_open: "Are both kidneys and adrenal glands normal in size, position and enhancement?"
+    en_yn: "Is either kidney or adrenal gland abnormal?"
+  - id: ab.s.bowel
+    node: ab.bowel
+    tier: 2
+    vi_src: "Dạ dày: vị trí, độ căng, dày thành; Tá tràng, ruột non: vị trí, độ căng, độ dày thành, mỡ xung quanh; Đại–trực tràng: vị trí, độ căng, độ dày thành, lòng ruột"
+    src: "lectures:9222#1"
+    en_open: "Are the stomach, small bowel and colon normal in position, distension and wall thickness?"
+    en_yn: "Is any part of the bowel abnormal?"
+  - id: ab.s.pelvis
+    node: ab.pelvis
+    tier: 2
+    vi_src: "Bàng quang: độ căng, độ dày thành, lòng; Tử cung, buồng trứng: kích thước, vị trí, khối u; Tuyến tiền liệt và túi tinh: kích thước, đóng vôi"
+    src: "lectures:9222#1"
+    en_open: "Are the bladder and pelvic organs (uterus/ovaries or prostate) normal?"
+    en_yn: "Is there an abnormality of the bladder or pelvic organs?"
+  - id: ab.s.vess
+    node: ab.vess
+    tier: 2
+    vi_src: "Mạch máu: ĐMCB, TMCD, ĐM thân tạng, đ-tm MTTT, đ-tm MTTD, đ-tm thận, tm lách, tm cửa"
+    src: "lectures:9222#1"
+    en_open: "Are the abdominal aorta, inferior vena cava and portal/splenic veins normal?"
+    en_yn: "Is an abdominal vessel abnormal?"
+  - id: ab.s.bone
+    node: ab.bone
+    tier: 2
+    vi_src: "Xương: độ khoáng xương, biến đổi thoái hóa, di căn"
+    src: "lectures:9222#1"
+    en_open: "Are the visible spine and pelvic bones normal?"
+    en_yn: "Is there a bone abnormality?"
+  - id: ab.f.liver
+    node: ab.liver.les
+    tier: 3
+    vi_src: "Xác định được gan, nhận xét đậm độ"
+    src: "lectures:14709#0"
+    en_open: "Is there a focal liver lesion, and is it hypodense, isodense or hyperdense to the liver?"
+    en_yn: "Is there a focal lesion in the liver?"
+  - id: ab.f.gb
+    node: ab.gb.stone
+    tier: 3
+    vi_src: "độ dày thành, độ căng của túi mật, sỏi đậm độ thấp / cao"
+    src: "lectures:9222#1"
+    en_open: "Is the gallbladder wall thickened, or are there gallstones?"
+    en_yn: "Are there gallstones or gallbladder wall thickening?"
+  - id: ab.f.panc
+    node: ab.panc.inf
+    tier: 3
+    vi_src: "nhận định ống tụy, tĩnh mạch lách, mỡ quanh tụy"
+    src: "lectures:9222#1"
+    en_open: "Is the pancreatic duct dilated or the peripancreatic fat stranded?"
+    en_yn: "Is there peripancreatic fat stranding or a dilated pancreatic duct?"
+  - id: ab.f.hydro
+    node: ab.kid.hyd
+    tier: 3
+    vi_src: "Thận: … bắt thuốc đối xứng, ứ các đài, bể thận và niệu quản"
+    src: "lectures:9222#2"
+    en_open: "Is there hydronephrosis, or do the kidneys enhance asymmetrically?"
+    en_yn: "Is there hydronephrosis?"
+  - id: ab.f.adr
+    node: ab.kid.adr
+    tier: 3
+    vi_src: "Thượng thận: dạng Y hay V, các chi dày < 1cm, các bờ không lồi"
+    src: "lectures:9222#2"
+    en_open: "Are the adrenal limbs thin (under 1 cm) with non-convex margins, or is there an adrenal mass?"
+    en_yn: "Is there an adrenal mass?"
+  - id: ab.f.bowel
+    node: ab.bowel.wall
+    tier: 3
+    vi_src: "độ căng, độ dày thành, mỡ xung quanh, mạc treo"
+    src: "lectures:9222#1"
+    en_open: "Is any bowel loop dilated or thick-walled, with stranding of the surrounding fat?"
+    en_yn: "Is there bowel dilatation or wall thickening?"
+  - id: ab.f.pelvis
+    node: ab.pelvis.bl
+    tier: 3
+    vi_src: "Bàng quang: độ căng, độ dày thành, lòng; Tử cung, buồng trứng: … khối u"
+    src: "lectures:9222#1"
+    en_open: "Is the bladder wall thickened, or is there a pelvic mass?"
+    en_yn: "Is there a pelvic mass or bladder wall thickening?"
+  - id: ab.f.bone
+    node: ab.bone.met
+    tier: 3
+    vi_src: "Xương: độ khoáng xương, biến đổi thoái hóa, di căn"
+    src: "lectures:9222#1"
+    en_open: "Are there degenerative changes or suspicious (metastatic) bone lesions?"
+    en_yn: "Is there a suspicious bone lesion?"
+  - id: ab.d.lesion
+    node: ab.desc
+    tier: 3
+    vi_src: "Giảm đậm độ (Hypodensity), Đồng đậm độ (Isodensity), Tăng đậm độ (Hyperdensity); Gan 65 +/– 5 HU, Lách 45 +/– 5 HU, Thận 40 +/– 10 HU"
+    src: "lectures:8722#0"
+    en_open: "Describe the lesion: which organ, its size and shape, and whether it is hypodense, isodense or hyperdense."
+    en_yn: "Is the lesion hypodense?"
+
+  # ═════════════ CT SỌ NÃO — ABBCS ═════════════
+  - id: hc.t.protocol
+    node: hc
+    tier: 1
+    vi_src: "Đọc phim CT đầu — Thông tin bệnh nhân và protocol (không cản quang/cản quang)"
+    src: "yhoc8003:21719#0"
+    en_open: "Is this head CT non-contrast or contrast-enhanced?"
+    en_yn: "Is this a non-contrast head CT?"
+  - id: hc.t.window
+    node: hc
+    tier: 1
+    vi_src: "CỬA SỔ NHU MÔ - CỬA SỔ XƯƠNG"
+    src: "yhoc8003:20239#0"
+    en_open: "Is this image displayed in a brain (parenchymal) window or a bone window?"
+    en_yn: "Is this image displayed in a bone window?"
+  - id: hc.t.asym
+    node: hc
+    tier: 1
+    vi_src: "'A' – Asymetry – so sánh hai bên. Lưu ý đầu xoay"
+    src: "yhoc8003:21719#1"
+    en_open: "Comparing the two sides, is the brain symmetric, or is one side abnormal?"
+    en_yn: "Is there an asymmetry between the left and right sides of the brain?"
+  - id: hc.s.blood
+    node: hc.blood
+    tier: 2
+    vi_src: "'B' – Blood – xuất huyết, tăng đậm độ. Đánh giá máu toàn bộ hai bán cầu và trong nhu mô; Não thất và khoang dịch não tủy; Rãnh não để tìm xuất huyết dưới nhện"
+    src: "yhoc8003:21719#1"
+    en_open: "Is there any hyperdense blood in the hemispheres, the parenchyma, the ventricles or the sulci?"
+    en_yn: "Is there any hyperdense haemorrhage?"
+  - id: hc.s.brain
+    node: hc.brain
+    tier: 2
+    vi_src: "'B' – Brain — Bất thường đậm độ; Di lệch: sự đẩy lệch đường giữa; Sự phân biệt chất xám/trắng"
+    src: "yhoc8003:21719#1"
+    en_open: "Is the brain parenchyma normal in density, with preserved grey–white differentiation and a midline position?"
+    en_yn: "Is there abnormal density in the brain parenchyma?"
+  - id: hc.s.csf
+    node: hc.csf
+    tier: 2
+    vi_src: "'C' – CSF spaces – khoang dịch não tủy: Đánh giá kích thước não thất và rãnh não; Các bể bình thường"
+    src: "yhoc8003:21719#1"
+    en_open: "Are the ventricles, sulci and basal cisterns normal in size?"
+    en_yn: "Are the ventricles enlarged?"
+  - id: hc.s.skull
+    node: hc.skull
+    tier: 2
+    vi_src: "'S' – Skull and scalp – chấn thương mô mềm; Lưu ý cửa sổ xương"
+    src: "yhoc8003:21719#1"
+    en_open: "Are the skull and scalp soft tissues intact?"
+    en_yn: "Is there an abnormality of the skull or scalp?"
+  - id: hc.f.extra
+    node: hc.blood.extra
+    tier: 3
+    vi_src: "EDH: Hình hai mặt lồi (biconvex/lenticular), không vượt qua khớp sọ; SDH: hình liềm"
+    src: "yhoc8003:20239#0"
+    also: ["lectures:8722#1"]
+    en_open: "Is there an extra-axial collection, and is it biconvex (epidural) or crescent-shaped (subdural)?"
+    en_yn: "Is there an epidural or subdural haematoma?"
+  - id: hc.f.sah
+    node: hc.blood.sah
+    tier: 3
+    vi_src: "XUẤT HUYẾT KHOANG DƯỚI NHỆN — Tăng đậm độ các khe, rãnh não; XUẤT HUYẾT TRONG NÃO THẤT"
+    src: "yhoc8003:20239#0"
+    en_open: "Are the sulci or ventricles filled with hyperdense material (subarachnoid or intraventricular haemorrhage)?"
+    en_yn: "Is there subarachnoid or intraventricular haemorrhage?"
+  - id: hc.f.hypo
+    node: hc.brain.hypo
+    tier: 3
+    vi_src: "Giảm đậm độ: phù/nhồi máu, khí và u; Giảm đậm độ theo vùng phân bố mạch máu"
+    src: "yhoc8003:21719#1"
+    en_open: "Is there a hypodense area, and does it follow a vascular territory (anterior, middle or posterior cerebral artery)?"
+    en_yn: "Is there a hypodense area in a vascular territory?"
+  - id: hc.f.early
+    node: hc.brain.early
+    tier: 3
+    vi_src: "Dấu 'tăng đậm độ đm não giữa'; Xóa mờ nhân đậu; Mất ranh giới chất xám/trắng do phù; Dấu hiệu 'Ruy băng thùy đảo'; Mất cấu trúc rãnh não bình thường"
+    src: "yhoc8003:21719#1"
+    en_open: "Are there early ischaemic signs: a hyperdense middle cerebral artery, loss of the insular ribbon, or an obscured lentiform nucleus?"
+    en_yn: "Are there early signs of ischaemic stroke?"
+  - id: hc.f.shift
+    node: hc.brain.shift
+    tier: 3
+    vi_src: "Di lệch: Sự đẩy lệch Đường giữa; Cấu trúc đường giữa như liềm não…; Hiệu ứng choán chỗ: ép não thất"
+    src: "yhoc8003:21719#1"
+    en_open: "Is there midline shift or mass effect compressing the ventricles?"
+    en_yn: "Is there a midline shift?"
+  - id: hc.f.herni
+    node: hc.csf.herni
+    tier: 3
+    vi_src: "Tìm bất đối xứng khoang dịch não tủy như xóa sừng trán hoặc mất rãnh não gợi ý phù; Đánh giá sự xóa bể nền hoặc thoát vị hạnh nhân"
+    src: "yhoc8003:21719#1"
+    en_open: "Are the sulci or basal cisterns effaced, suggesting oedema or herniation?"
+    en_yn: "Are the basal cisterns or sulci effaced?"
+  - id: hc.f.fx
+    node: hc.skull.fx
+    tier: 3
+    vi_src: "VỠ HỘP SỌ: Nứt sọ dạng đường, Lún sọ (depressed); cần phân biệt Mạch máu, Khớp sọ"
+    src: "yhoc8003:20239#0"
+    en_open: "On the bone window, is there a linear or depressed skull fracture (as distinct from a suture or vascular groove)?"
+    en_yn: "Is there a skull fracture?"
+  - id: hc.d.lesion
+    node: hc.desc
+    tier: 3
+    vi_src: "Tăng đậm độ: máu cấp, u, xương, cản quang…; Giảm đậm độ: phù/nhồi máu, khí và u. Xuất huyết, tụ máu 55 – 75 HU; Chất xám 35 – 45; Chất trắng 20 – 30; Dịch não tủy 0 – 10"
+    src: "yhoc8003:21719#1"
+    en_open: "Describe the lesion: its lobe and side, size, and whether it is hyperdense, isodense or hypodense to brain."
+    en_yn: "Is the lesion hyperdense?"
+
+  # ═════════════ MRI SỌ NÃO (SUY RA) ═════════════
+  - id: hm.t.seq
+    node: hm
+    tier: 1
+    vi_src: "Tín hiệu các mô dịch cơ thể: Nước tự do (thận, phù, dịch não tủy) — T1W: Thấp, T2W: Cao; Mỡ — T1W: Cao, T2W: Cao"
+    src: "lectures:14738#3"
+    en_open: "Is the cerebrospinal fluid dark or bright on this image — does it look T1-weighted, T2-weighted, FLAIR or diffusion-weighted?"
+    en_yn: "Is the cerebrospinal fluid bright on this image?"
+  - id: hm.t.plane
+    node: hm
+    tier: 1
+    vi_src: "So sánh CT và MRI — Mặt cắt: CT Axial, Coronal; MRI Bất kỳ"
+    src: "lectures:14738#4"
+    en_open: "In which plane is this MRI slice (axial, coronal or sagittal)?"
+    en_yn: "Is this an axial MRI slice?"
+  - id: hm.t.asym
+    node: hm
+    tier: 1
+    vi_src: "'A' – Asymetry – so sánh hai bên (áp dụng từ ABBCS của CT đầu)"
+    src: "yhoc8003:21719#1"
+    en_open: "Comparing the two hemispheres, is the signal symmetric, or is one side abnormal?"
+    en_yn: "Is there a signal asymmetry between the two hemispheres?"
+  - id: hm.s.par
+    node: hm.par
+    tier: 2
+    vi_src: "'B' – Brain — Bất thường (đậm độ → tín hiệu); Sự phân biệt chất xám/trắng"
+    src: "yhoc8003:21719#1"
+    en_open: "Is the brain parenchyma normal in signal, with preserved grey–white differentiation?"
+    en_yn: "Is there abnormal signal in the brain parenchyma?"
+  - id: hm.s.mid
+    node: hm.mid
+    tier: 2
+    vi_src: "Di lệch: Sự đẩy lệch Đường giữa; Cấu trúc đường giữa như liềm não, tuyến yên, tuyến tùng"
+    src: "yhoc8003:21719#1"
+    en_open: "Are the midline structures in their normal position?"
+    en_yn: "Are the midline structures displaced?"
+  - id: hm.s.csf
+    node: hm.csf
+    tier: 2
+    vi_src: "'C' – CSF spaces — Đánh giá kích thước não thất và rãnh não"
+    src: "yhoc8003:21719#1"
+    en_open: "Are the ventricles and sulci normal in size?"
+    en_yn: "Are the ventricles enlarged?"
+  - id: hm.f.focal
+    node: hm.par.focal
+    tier: 3
+    vi_src: "MRI … có thể phát hiện nhồi máu tốt hơn NCCT; T1WI, T2WI, FLAIR, Diffusion weighted image (DWI)"
+    src: "lectures:15498#1"
+    en_open: "Is there a focal area of abnormal signal on this image, and is it hyperintense or hypointense?"
+    en_yn: "Is there a focal hyperintense lesion on this image?"
+  - id: hm.f.bleed
+    node: hm.par.bleed
+    tier: 3
+    vi_src: "Tín hiệu xuất huyết (tùy thuộc vào thời gian): Tối cấp (< 24 giờ) — T1W Thấp, T2W Cao; Cấp (1-3 ngày)…"
+    src: "lectures:14738#3"
+    en_open: "Does the lesion have the signal pattern of haemorrhage on this image?"
+    en_yn: "Does the lesion look like haemorrhage on this image?"
+  - id: hm.f.shift
+    node: hm.mid.shift
+    tier: 3
+    vi_src: "Hiệu ứng choán chỗ: ép não thất, rãnh…; Sự đẩy lệch Đường giữa"
+    src: "lectures:14262#2"
+    en_open: "Does the lesion cause mass effect, compressing a ventricle or shifting the midline?"
+    en_yn: "Does the lesion cause mass effect?"
+  - id: hm.f.hydro
+    node: hm.csf.hydro
+    tier: 3
+    vi_src: "Tìm bất đối xứng khoang dịch não tủy như xóa sừng trán hoặc mất rãnh não gợi ý phù"
+    src: "yhoc8003:21719#1"
+    en_open: "Are the ventricles dilated, or are the sulci and a ventricular horn effaced?"
+    en_yn: "Are the ventricles dilated?"
+  - id: hm.d.lesion
+    node: hm.desc
+    tier: 3
+    vi_src: "Vị trí, Kích thước, Hình dạng, Đường bờ, Cấu trúc bên trong, (đậm độ → tín hiệu), Liên quan cấu trúc xung quanh"
+    src: "lectures:8244#3"
+    en_open: "Describe the lesion: lobe and side, size, shape, margins and signal intensity on this image."
+    en_yn: "Is the lesion well-defined?"
+
+  # ═════════════ CT CỔ (SUY RA) ═════════════
+  - id: nk.t.plane
+    node: nk
+    tier: 1
+    vi_src: "Giải phẫu cắt lớp CT-MRI — Phần đầu-cổ (các lát cắt ngang vùng cổ)"
+    src: "yhoc8003:21056#0"
+    en_open: "At which level of the neck is this slice, and is it contrast-enhanced?"
+    en_yn: "Is this a contrast-enhanced neck CT?"
+  - id: nk.s.air
+    node: nk.air
+    tier: 2
+    vi_src: "Khí phế quản (áp dụng cho vùng cổ)"
+    src: "lectures:8244#2"
+    en_open: "Is the airway (larynx and trachea) midline and patent?"
+    en_yn: "Is the airway narrowed or deviated?"
+  - id: nk.s.thy
+    node: nk.thy
+    tier: 2
+    vi_src: "Tuyến giáp: kích thước, đậm độ"
+    src: "lectures:8244#2"
+    en_open: "Is the thyroid gland normal in size and density?"
+    en_yn: "Is the thyroid gland enlarged or abnormal?"
+  - id: nk.s.vess
+    node: nk.vess
+    tier: 2
+    vi_src: "Mạch máu (hẹp/ phình, bóc tách…) (áp dụng cho động mạch cảnh, tĩnh mạch cảnh)"
+    src: "lectures:8244#2"
+    en_open: "Are the carotid arteries and jugular veins normal?"
+    en_yn: "Is a neck vessel abnormal?"
+  - id: nk.s.soft
+    node: nk.soft
+    tier: 2
+    vi_src: "Hạch; Thành ngực: mô mềm (áp dụng cho mô mềm vùng cổ)"
+    src: "lectures:8244#2"
+    en_open: "Are the soft tissues and lymph nodes of the neck normal?"
+    en_yn: "Are there enlarged lymph nodes or a soft-tissue mass in the neck?"
+  - id: nk.s.spine
+    node: nk.spine
+    tier: 2
+    vi_src: "Cửa sổ xương: thấy rõ hơn hình ảnh hủy xương, chi tiết xương"
+    src: "lectures:8244#2"
+    en_open: "Is the cervical spine normal?"
+    en_yn: "Is there an abnormality of the cervical spine?"
+  - id: nk.f.air
+    node: nk.air.dev
+    tier: 3
+    vi_src: "A: Airways — Chú ý 2 bất thường: Di lệch – Hẹp"
+    src: "lectures:10925#1"
+    en_open: "Is the airway displaced or narrowed by an adjacent mass?"
+    en_yn: "Is the airway displaced or narrowed?"
+  - id: nk.f.mass
+    node: nk.soft.mass
+    tier: 3
+    vi_src: "Liên quan cấu trúc xung quanh (… xâm lấn mạch máu…)"
+    src: "lectures:8244#3"
+    en_open: "Is there a neck mass or enlarged node, and does it invade adjacent vessels or the airway?"
+    en_yn: "Is there a neck mass?"
+  - id: nk.d.lesion
+    node: nk.desc
+    tier: 3
+    vi_src: "CÁCH MÔ TẢ TỔN THƯƠNG: Vị trí, Kích thước, Hình dạng, Đường bờ, Cấu trúc bên trong, Đậm độ, Liên quan cấu trúc xung quanh"
+    src: "lectures:8244#3"
+    en_open: "Describe the lesion: location, size, shape, margins, internal structure, density and relation to surrounding structures."
+    en_yn: "Is the lesion well-defined?"
+
+  # ═════════════ GENERIC ═════════════
+  - id: gn.t.mod
+    node: gn
+    tier: 1
+    vi_src: "Nhận biết được phim CT-scan — Phân biệt được CT-scan và MRI"
+    src: "lectures:14709#0"
+    en_open: "What imaging modality is this (X-ray, CT or MRI), which body region does it show, and in which plane?"
+    en_yn: "Is this a CT image?"
+  - id: gn.t.asym
+    node: gn
+    tier: 1
+    vi_src: "'A' – Asymetry – so sánh hai bên"
+    src: "yhoc8003:21719#1"
+    en_open: "Comparing the left and right sides, is the image symmetric?"
+    en_yn: "Is there an asymmetry between the left and right sides?"
+  - id: gn.s.org
+    node: gn.org
+    tier: 2
+    vi_src: "Nhận diện được các cấu trúc giải phẫu bình thường (nêu các vùng không bệnh lý)"
+    src: "bsnt:2755#0"
+    en_open: "Which organs are visible in this image, and do they look normal?"
+    en_yn: "Do all the visible organs look normal?"
+  - id: gn.f.abn
+    node: gn.org.abn
+    tier: 3
+    vi_src: "Mô tả các hình ảnh bất thường theo đậm độ và hội chứng"
+    src: "bsnt:2755#0"
+    en_open: "Which organ looks abnormal, and how does the abnormality appear?"
+    en_yn: "Is there an abnormal organ in this image?"
+  - id: gn.d.lesion
+    node: gn.desc
+    tier: 3
+    vi_src: "Vị trí, Kích thước, Hình dạng, Đường bờ, Cấu trúc bên trong, Đậm độ, Liên quan cấu trúc xung quanh"
+    src: "lectures:8244#3"
+    en_open: "Describe the lesion: location, size, shape, margins, internal structure and relation to surrounding structures."
+    en_yn: "Is the lesion well-defined?"
+
+# Mục có trong nguồn nhưng BỊ LOẠI — cần thông tin ngoài một ảnh đơn (bài học §14: LLaVA-Med bịa câu trả lời).
+excluded:
+  - {vi_src: "Kiểm tra đúng bệnh nhân, đúng phim (tên, tuổi, thời gian chụp, chụp ở khoa, bệnh viện nào…)", src: "bsnt:2755#0", reason: "thông tin hành chính, không có trong ảnh"}
+  - {vi_src: "Xác định về giới tính; Xác định về tuổi; Thời điểm chụp phim", src: "bsnt:2758#0", reason: "thông tin hành chính / không suy ra được tin cậy từ ảnh"}
+  - {vi_src: "Đọc cùng với phim nghiêng để thấy chiều không gian", src: "bsnt:2755#0", reason: "cần phim thứ hai"}
+  - {vi_src: "So sánh phim cũ để thấy thêm chiều thời gian", src: "bsnt:2755#0", reason: "cần phim cũ"}
+  - {vi_src: "Kết hợp lâm sàng để định hướng chẩn đoán", src: "bsnt:2755#0", reason: "cần bệnh sử"}
+  - {vi_src: "XEM HÌNH 'SCOUT VIEW' ĐỂ BIẾT VỊ TRÍ LÁT CẮT", src: "yhoc8003:26093#0", reason: "cần ảnh định vị riêng"}
+  - {vi_src: "ĐO ĐẬM ĐỘ (TỶ TRỌNG) … BẰNG NÚT 'ROI'", src: "yhoc8003:26093#0", reason: "cần công cụ đo trên máy, ảnh JPG không có HU"}
+  - {vi_src: "ĐƯA RA CHẨN ĐOÁN … DỰA VÀO BỆNH SỬ VÀ CÁC TRIỆU CHỨNG LÂM SÀNG HOẶC XÉT NGHIỆM", src: "yhoc8003:26093#0", reason: "cần bệnh sử, xét nghiệm"}
+  - {vi_src: "Tiếp cận bệnh nhân — Tiền sử mổ vùng bụng – chậu; Tiền sử bệnh ác tính và xạ trị; Những bất thường trước đây", src: "lectures:9222#1", reason: "cần bệnh sử và phim cũ"}
+  - {vi_src: "Xem hình định vị …; Xem trục cột sống cổ cao", src: "yhoc8003:21719#0", reason: "cần ảnh định vị"}
+  - {vi_src: "'S' – Xác định cơ chế chấn thương", src: "yhoc8003:21719#1", reason: "cần bệnh sử"}
+  - {vi_src: "Hạ phân thùy gan 2–8; Tĩnh mạch mạc treo tràng dưới; Động mạch gan chung …", src: "lectures:14709#0", reason: "bài tập nhận diện giải phẫu mức rất mịn, không phải bước sàng lọc bất thường; giữ ngoài bank để bank không phình"}
+  - {vi_src: "Xác định khoảng cách bờ phải bóng tim với bờ phải cột sống; khoảng cách bờ trái cung ĐMC … (các số đo tim mạch)", src: "bsnt:2758#0", reason: "số đo chuyên sâu tim mạch; ảnh SLAKE không có thước đo"}
+  - {vi_src: "Giới hạn: DWI/ADC, T1 trước–sau tiêm, so sánh nhiều chuỗi xung", src: "lectures:15498#1", reason: "cần ảnh của chuỗi xung khác — đúng lỗi qid 12779 (ADC map bịa)"}
