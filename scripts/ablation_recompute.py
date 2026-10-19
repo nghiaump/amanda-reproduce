@@ -20,7 +20,9 @@ from summarize_runs import GT, load, score  # noqa: E402
 
 R = REPO / "runs"
 ARMS = {"A1": "amanda-A1/full-r*", "A2": "amanda-A2/full-r*", "A3": "amanda-A3/full-r*",
-        "A4": "amanda-A4/full-g1"}
+        "A4": "amanda-A4/full-g1",
+        # đối chứng đồ thị (bước 10 với EXTRA_ARMS="C2 B2"): C2 Retriever = SLAKE-KG · B2 SHAM theo C2 cùng lượt
+        "C2": "amanda-C2/full-r*", "B2": "amanda-B2/full-r*"}
 
 
 def complete(d: str) -> bool:
@@ -59,13 +61,17 @@ def main() -> None:
     a1 = out["A1"]
     if not a1:
         sys.exit("chưa có lượt runs/amanda-A1/full-r* nào đủ 1.061 câu — chạy bước 10 trước")
-    for arm in ("A2", "A3", "A4"):
+    for arm in ("A2", "A3", "A4", "C2", "B2"):
         x = out[arm]
         if x is None:
             continue
         x["delta"] = {k: x[k] - a1[k] for k in ("open", "closed")}
         x["t"] = {k: t_test(x, a1, k) for k in ("open", "closed")}
         x["df"] = x["n_runs"] + a1["n_runs"] - 2
+    if out["B2"] and out["C2"]:                 # SHAM so với chính KG mà nó bắt chước
+        b, c = out["B2"], out["C2"]
+        b["vs_C2"] = {"delta": {k: b[k] - c[k] for k in ("open", "closed")},
+                      "t": {k: t_test(b, c, k) for k in ("open", "closed")}, "df": b["n_runs"] + c["n_runs"] - 2}
     (REPO / "results").mkdir(exist_ok=True)
     (REPO / "results/ablation_summary.json").write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf8")
     for arm, x in out.items():

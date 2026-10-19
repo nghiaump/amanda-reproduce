@@ -156,6 +156,32 @@ nohup bash run_all.sh > /dev/null 2>&1 &      # chạy nền (nên dùng nohup h
 11 → (12) → 13 → 15. Bị ngắt ở đâu thì chạy lại đúng lệnh `bash run_all.sh`: bước đã xong được bỏ qua, lượt đang dở
 chạy tiếp từ câu cuối đã ghi.
 
+### Lệnh cho từng nhóm thực nghiệm
+
+Mỗi nhóm thực nghiệm trong báo cáo tương ứng với một nhóm run cùng tên trên W&B (mục 9).
+
+| nhóm W&B | arm | lệnh |
+|---|---|---|
+| `baseline` | A0, A0-bug | `bash steps/08_baseline.sh` |
+| `main` | A1 × 3 | `bash steps/10_main.sh` |
+| `ablation` | A2 × 3, A3 × 3, A4 | `bash steps/09_gate.sh` (A4) · `bash steps/10_main.sh` (A2, A3) |
+| `graph` | C2 × 3, B2 × 3 | `EXTRA_ARMS="C2 B2" bash steps/10_main.sh` |
+| `qbank` | F0, F1, FQ × 3 | `bash steps/11_forced.sh` |
+| `control` | A1 × 3 chỉ đọc cache SPOKE · A1 × 3 với caption sinh bằng adapter gốc | xem các lệnh ngay dưới bảng |
+| `analysis` | không chạy mô hình | `bash steps/13_analyze.sh` → `results/`, rồi `bash steps/15_wandb.sh` |
+
+Hai bộ của nhóm `control` chạy tay bằng `run_pipeline.py` (dạng lệnh đầy đủ ở mục 7), mỗi bộ ba lượt `k = 1, 2, 3`:
+
+```bash
+# A1 chỉ đọc cache SPOKE của bước 07, không gọi API cho entity thiếu
+… --arm A1 --tag spokecache-r<k> --spoke cache --captions runs/amanda-A/captions_patched.json --wandb
+# A1 với caption sinh bằng adapter gốc (chưa vá giải mã)
+CUDA_VISIBLE_DEVICES=$GPU_LLAVA PYTHONPATH=src .venv/bin/python scripts/amanda_captions.py --out runs/amanda-A/captions_unpatched.json
+… --arm A1 --tag oldcaption-r<k> --spoke cache --captions runs/amanda-A/captions_unpatched.json --wandb
+```
+
+Đối chứng bộ giải mã 2×2 trên 200 câu (bước 12, tuỳ chọn): `bash steps/12_decode_control.sh`.
+
 ---
 
 ## 7. Từng bước
@@ -428,7 +454,7 @@ Không ghi API key vào `config.env` hay bất kỳ file nào trong repo; `wandb
 
 **Log trực tiếp.** Khi `WANDB_MODE` khác `disabled`, các bước 09–12 thêm `--wandb` cho `run_pipeline.py`. Mỗi lượt
 là một run tên `<ARM>-<TAG>` (id cố định theo tên, nên chạy tiếp một lượt sẽ ghi vào đúng run cũ), nhóm `main`
-(A1), `ablation` (A2, A3, A4), `intervention` (C2, C5, B2) hoặc `qbank` (F0, F1, FQ). Trong lúc chạy, cứ 20 câu
+(A1), `ablation` (A2, A3, A4), `graph` (C2, C5, B2) hoặc `qbank` (F0, F1, FQ). Trong lúc chạy, cứ 20 câu
 log một lần điểm lũy kế (chấm bằng hàm của tác giả) và tốc độ. Khi xong, run nhận bảng dự đoán từng câu và một
 artifact gồm `predictions.jsonl`, `trace.jsonl`, `metrics.json`; thư mục lượt nhận file `WANDB_RUN.txt`. Chạy tay:
 

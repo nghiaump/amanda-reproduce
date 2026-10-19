@@ -155,8 +155,8 @@ def write_tex(S: dict, D: dict, S_cxr: dict) -> None:
         sd, _ = pooled_sd(by)
         if tag == "Closed":
             out["qbSDclosed"] = vn(sd)
-        for x, y, k in (("FQ", "F1", "qo"), ("F1", "F0", "oz")):
-            if tag == "OpenS" and k == "oz":
+        for x, y, k in (("FQ", "F1", "qo"), ("F1", "F0", "oz"), ("FQ", "F0", "qz")):
+            if tag == "OpenS" and k in ("oz", "qz"):
                 continue
             delta = st.mean(by[x]) - st.mean(by[y])
             t = delta / (sd * (1 / len(by[x]) + 1 / len(by[y])) ** 0.5)
@@ -171,7 +171,7 @@ def write_tex(S: dict, D: dict, S_cxr: dict) -> None:
     for metric, tag in (("closed", "Closed"), ("open_sent1", "OpenS")):
         by = {a: [s[metric] for s in S_cxr[a]] for a in ARMS}
         sd, _ = pooled_sd(by)
-        for x, y, k in (("FQ", "F1", "qo"), ("F1", "F0", "oz")):
+        for x, y, k in (("FQ", "F1", "qo"), ("F1", "F0", "oz"), ("FQ", "F0", "qz")):
             delta = st.mean(by[x]) - st.mean(by[y])
             t = delta / (sd * (1 / len(by[x]) + 1 / len(by[y])) ** 0.5)
             out[f"qbCxrD{k}{tag}"] = vn(delta, sign=True)

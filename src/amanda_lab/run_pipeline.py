@@ -346,7 +346,7 @@ def main() -> None:
     ap.add_argument("--expect", default="", help="kỳ vọng đăng ký TRƯỚC khi chạy")
     ap.add_argument("--wandb", action="store_true",
                     help="ghi lượt chạy lên Weights & Biases (WANDB_PROJECT, WANDB_ENTITY): điểm lũy kế mỗi 20 câu")
-    ap.add_argument("--wandb-group", default="", help="nhóm W&B; mặc định suy từ arm (main / ablation / qbank)")
+    ap.add_argument("--wandb-group", default="", help="nhóm W&B; mặc định suy từ arm (main / ablation / graph / qbank)")
     a = ap.parse_args()
 
     if a.arm == "FQ":                          # ⛔ bank phải đóng băng TRƯỚC khi chạy
@@ -382,7 +382,7 @@ def main() -> None:
     if a.wandb:
         from amanda_lab import wandb_log
         group = a.wandb_group or {"A1": "main", "A2": "ablation", "A3": "ablation", "A4": "ablation",
-                                  **{f: "qbank" for f in FORCED}}.get(a.arm, "intervention")
+                                  **{f: "qbank" for f in FORCED}}.get(a.arm, "graph")
         wb = wandb_log.start(f"{a.arm}-{a.tag or sub}", group, {
             **vars(a), "n_questions": len(gt), "max_iterations": 3, "confidence_threshold": 3,
             "max_sub_questions": 3, "fewshot": False, "temperature": 0.0, "mllm": MODEL.name,

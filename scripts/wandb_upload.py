@@ -33,7 +33,7 @@ LOGS = REPO / "logs" / "runs"
 N_FULL = 1061
 FORCED = ("F0", "F1", "FQ")
 GROUP = {"A0": "baseline", "A1": "main", "A2": "ablation", "A3": "ablation", "A4": "ablation",
-         "C2": "intervention", "B2": "intervention", "C5": "intervention",
+         "C2": "graph", "B2": "graph", "C5": "graph",
          **{f: "qbank" for f in FORCED}}
 DESC = {
     "A0": "LLaVA-Med trả lời một bước, không agent nào",
