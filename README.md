@@ -16,6 +16,7 @@ Cấu hình chi tiết của từng arm: [`docs/experiments.md`](docs/experiment
 | | yêu cầu |
 |---|---|
 | GPU | NVIDIA, 2 card × 24 GB: một card cho LLaVA-Med (cần khoảng 15 GB trống, `GPU_LLAVA`), một card cho server vLLM (khoảng 21 GB, `GPU_LLM`). Nếu đã có server LLM ở nơi khác (mục 7, bước 05) thì chỉ cần 1 card cho LLaVA-Med. |
+| CPU | Tốc độ một lượt phụ thuộc chủ yếu vào **xung nhịp một nhân**, không phải số nhân: harness là một tiến trình Python (các worker là luồng, chung một GIL), và LLaVA-Med sinh từng token bằng vòng lặp Python ở batch 1. Chọn máy có xung đơn nhân cao; máy ảo với xung cố định thấp có thể chậm gần gấp đôi dù GPU giống hệt. |
 | Đĩa | khoảng 30 GB trong thư mục gói (môi trường Python, trọng số LLaVA-Med, SLAKE, kết quả), cộng khoảng 17 GB trong cache Hugging Face nếu tự dựng vLLM |
 | Mạng | GitHub, Hugging Face, `pypi.org`, `download.pytorch.org`; SPOKE (`spoke.rbvi.ucsf.edu`) cho bước 07–12; `wandb.ai` nếu dùng W&B ở chế độ online |
 | Thời gian | tổng cộng khoảng một ngày GPU cho các bước bắt buộc; thời gian từng bước ở mục 7 |
@@ -531,6 +532,7 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=src .venv/bin/python -m amanda_lab.run_pipelin
 | `FileNotFoundError … runs/amanda-A/A1.json` khi chạy `run_pipeline` | Chạy bước 07 trước (`run_pipeline` nạp `scripts/c0_slake_fire.py`, vốn đọc file này). |
 | W&B báo `api_key not configured` | `WANDB_MODE=online` nhưng chưa `wandb login`. Đăng nhập (mục 9) hoặc dùng `WANDB_MODE=offline`. |
 | muốn chạy nhanh để thử | `REPS=1 bash steps/10_main.sh`, hoặc một lượt nhỏ bằng tay (mục 10). |
+| lượt chạy chậm dù GPU còn rảnh (GPU của LLaVA-Med dưới 50 % tải, vLLM thường chỉ có 0–2 yêu cầu đang chạy) | Harness đang nghẽn ở một nhân CPU (`top -H -p <pid>` cho thấy tổng các luồng khoảng 100 %). `nvidia-smi` báo 100 % tải ở GPU của vLLM không có nghĩa server bận; xem dòng `Running: … reqs` trong log vLLM. Tăng `WORKERS` không giúp vì GIL. Muốn nhanh hơn thì dùng CPU có xung đơn nhân cao, hoặc chạy các lượt khác nhau ở các tiến trình riêng trên các GPU riêng (mỗi tiến trình cần một bản LLaVA-Med khoảng 15 GB), dùng chung một server vLLM. |
 | `Error 804: forward compatibility was attempted on non supported HW` | Image Docker có thư viện CUDA compat (ví dụ `cuda-12.9.1-runtime`) chạy trên card GeForce, mà GeForce không hỗ trợ forward compatibility. Bỏ qua thư viện compat bằng `export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu` trước khi chạy vLLM và `run_pipeline`. torch CUDA 12.x vẫn chạy được trên driver ≥ 525 nhờ minor-version compatibility. |
 | `ValueError: Unknown scheme for proxy URL … socks5h://` | Client OpenAI (httpx 0.24) đọc `HTTPS_PROXY` và không hiểu scheme `socks5h`. Dùng `socks5://` và cài `socksio` vào `.venv`; tên miền cần proxy thì phân giải trước bằng `/etc/hosts`. |
 | máy chạy không gọi được SPOKE (hết thời gian chờ, không phân giải được tên miền) | Một số vùng mạng bị chặn tới `SPOKE_URL`. Hoặc dùng cache trong `snapshot/` (`USE_SNAPSHOT=1`), hoặc cho riêng tiến trình `run_pipeline` đi qua proxy bằng `HTTPS_PROXY`, kèm `NO_PROXY=127.0.0.1,localhost` để lời gọi tới server LLM cục bộ không đi qua proxy. Kiểm `spoke_stats.errors` = 0 sau mỗi lượt. |
